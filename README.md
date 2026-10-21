@@ -208,3 +208,26 @@ Flag: virtual_host_metadata, state: enabled
 vagrant@rmq02:~$
 ```
 </details>
+
+### Проверка отказоустойчивости
+
+Ещё раз запущен `producer.py` (подключение к `rmq01`), затем сообщение прочитано на каждой ноде.
+`rabbitmqadmin` скачан с самой ноды: `curl -o /usr/local/bin/rabbitmqadmin http://localhost:15672/cli/rabbitmqadmin`.
+
+`rabbitmqadmin get queue='hello'` на rmq01:
+
+![get rmq01](img/09-get-rmq01.png)
+
+`rabbitmqadmin get queue='hello'` на rmq02 — то же сообщение доступно на второй ноде благодаря зеркалированию
+(`redelivered: True`, потому что `get` по умолчанию возвращает сообщение обратно в очередь):
+
+![get rmq02](img/10-get-rmq02.png)
+
+Нода `rmq01`, к которой подключался скрипт, выключена (`vagrant halt rmq01`), в `consumer.py` адрес заменён
+на `rmq02` (`192.168.56.11`). Сообщение успешно получено со второй ноды:
+
+![consumer rmq02](img/11-consumer-rmq02.png)
+
+Состояние кластера в веб-интерфейсе `rmq02` после отключения `rmq01`:
+
+![rmq01 down](img/12-rmq01-down.png)
