@@ -49,3 +49,162 @@ rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
 Результат работы `consumer.py`:
 
 ![consumer](img/03-consumer.png)
+
+---
+
+## Задание 3. Подготовка HA кластера
+
+Имена и адреса обеих машин прописаны в `/etc/hosts` (делается в provision Vagrantfile), машины пингуются по имени:
+
+![hosts](img/04-hosts-ping.png)
+
+`.erlang.cookie` на обеих нодах одинаковый. Подключение `rmq02` к кластеру и создание политики `ha-all`:
+
+```bash
+# на rmq02
+rabbitmqctl stop_app
+rabbitmqctl reset
+rabbitmqctl join_cluster rabbit@rmq01
+rabbitmqctl start_app
+
+# на любой ноде
+rabbitmqctl set_policy ha-all "" '{"ha-mode":"all","ha-sync-mode":"automatic"}'
+```
+
+Ноды кластера в веб-интерфейсе:
+
+![nodes](img/05-cluster-nodes.png)
+
+Политика `ha-all`:
+
+![policy](img/06-policy-ha-all.png)
+
+Вывод `rabbitmqctl cluster_status` на rmq01:
+
+![cluster_status rmq01](img/07-cluster-status-rmq01.png)
+
+<details>
+<summary>текстом</summary>
+
+```
+vagrant@rmq01:~$ sudo rabbitmqctl cluster_status
+Cluster status of node rabbit@rmq01 ...
+Basics
+
+Cluster name: rabbit@rmq01
+
+Disk Nodes
+
+rabbit@rmq01
+rabbit@rmq02
+
+Running Nodes
+
+rabbit@rmq01
+rabbit@rmq02
+
+Versions
+
+rabbit@rmq01: RabbitMQ 3.9.27 on Erlang 24.2.1
+rabbit@rmq02: RabbitMQ 3.9.27 on Erlang 24.2.1
+
+Maintenance status
+
+Node: rabbit@rmq01, status: not under maintenance
+Node: rabbit@rmq02, status: not under maintenance
+
+Alarms
+
+(none)
+
+Network Partitions
+
+(none)
+
+Listeners
+
+Node: rabbit@rmq01, interface: [::], port: 25672, protocol: clustering, purpose: inter-node and CLI tool communication
+Node: rabbit@rmq01, interface: [::], port: 5672, protocol: amqp, purpose: AMQP 0-9-1 and AMQP 1.0
+Node: rabbit@rmq01, interface: [::], port: 15672, protocol: http, purpose: HTTP API
+Node: rabbit@rmq02, interface: [::], port: 15672, protocol: http, purpose: HTTP API
+Node: rabbit@rmq02, interface: [::], port: 25672, protocol: clustering, purpose: inter-node and CLI tool communication
+Node: rabbit@rmq02, interface: [::], port: 5672, protocol: amqp, purpose: AMQP 0-9-1 and AMQP 1.0
+
+Feature flags
+
+Flag: drop_unroutable_metric, state: enabled
+Flag: empty_basic_get_metric, state: enabled
+Flag: implicit_default_bindings, state: enabled
+Flag: maintenance_mode_status, state: enabled
+Flag: quorum_queue, state: enabled
+Flag: stream_queue, state: enabled
+Flag: user_limits, state: enabled
+Flag: virtual_host_metadata, state: enabled
+vagrant@rmq01:~$
+```
+</details>
+
+Вывод `rabbitmqctl cluster_status` на rmq02:
+
+![cluster_status rmq02](img/08-cluster-status-rmq02.png)
+
+<details>
+<summary>текстом</summary>
+
+```
+vagrant@rmq02:~$ sudo rabbitmqctl cluster_status
+Cluster status of node rabbit@rmq02 ...
+Basics
+
+Cluster name: rabbit@rmq02
+
+Disk Nodes
+
+rabbit@rmq01
+rabbit@rmq02
+
+Running Nodes
+
+rabbit@rmq01
+rabbit@rmq02
+
+Versions
+
+rabbit@rmq01: RabbitMQ 3.9.27 on Erlang 24.2.1
+rabbit@rmq02: RabbitMQ 3.9.27 on Erlang 24.2.1
+
+Maintenance status
+
+Node: rabbit@rmq01, status: not under maintenance
+Node: rabbit@rmq02, status: not under maintenance
+
+Alarms
+
+(none)
+
+Network Partitions
+
+(none)
+
+Listeners
+
+Node: rabbit@rmq01, interface: [::], port: 25672, protocol: clustering, purpose: inter-node and CLI tool communication
+Node: rabbit@rmq01, interface: [::], port: 5672, protocol: amqp, purpose: AMQP 0-9-1 and AMQP 1.0
+Node: rabbit@rmq01, interface: [::], port: 15672, protocol: http, purpose: HTTP API
+Node: rabbit@rmq02, interface: [::], port: 15672, protocol: http, purpose: HTTP API
+Node: rabbit@rmq02, interface: [::], port: 25672, protocol: clustering, purpose: inter-node and CLI tool communication
+Node: rabbit@rmq02, interface: [::], port: 5672, protocol: amqp, purpose: AMQP 0-9-1 and AMQP 1.0
+
+Feature flags
+
+Flag: drop_unroutable_metric, state: enabled
+Flag: empty_basic_get_metric, state: enabled
+Flag: implicit_default_bindings, state: enabled
+Flag: maintenance_mode_status, state: enabled
+Flag: quorum_queue, state: enabled
+Flag: stream_queue, state: enabled
+Flag: user_limits, state: enabled
+Flag: virtual_host_metadata, state: enabled
+vagrant@rmq02:~$
+```
+</details>
